@@ -3,18 +3,6 @@ $ = jQuery
 $(document).on "click", "#list input.toggle", ->
   $("#list [name='bulk_ids[]']").prop "checked", $(this).is(":checked")
 
-$(document).on 'click', '.pjax', (event) ->
-  if event.which > 1 || event.metaKey || event.ctrlKey
-    return
-  else if $.support.pjax
-    event.preventDefault()
-    $.pjax
-      container: $(this).data('pjax-container') || '[data-pjax-container]'
-      url: $(this).data('href') || $(this).attr('href')
-      timeout: 2000
-  else if $(this).data('href') # not a native #href, need some help
-    window.location = $(this).data('href')
-
 $(document).on 'submit', '.pjax-form', (event) ->
   if $.support.pjax
     event.preventDefault()
