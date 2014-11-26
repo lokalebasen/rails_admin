@@ -5,3 +5,4 @@ $ ->
     tinymce.init
       selector:'.tinymce-editable',
       plugins: "image link table media print charmap preview code"
+      convert_urls: false
