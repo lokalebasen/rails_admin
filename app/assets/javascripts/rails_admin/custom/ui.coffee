@@ -1,8 +1,14 @@
 #= override this file in your application to add custom behaviour
 
 $ ->
-  $(".tinymce-trigger").click ->
-    tinymce.init
-      selector:'.tinymce-editable',
-      plugins: "image link table media print charmap preview code"
-      convert_urls: false
+
+  options =
+    plugins: "image link table media print charmap preview code"
+    convert_urls: false
+
+  $('body').on 'click', '.tinymce-trigger', ->
+    textArea = this.previousSibling.previousSibling
+    if textArea.id is undefined
+      textArea.id = tinyMCE.DOM.uniqueId()
+    tinymce.EditorManager.createEditor(textArea.id, options).init()
+
