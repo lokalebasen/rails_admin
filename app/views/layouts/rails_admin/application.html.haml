@@ -17,10 +17,10 @@
       = render "layouts/rails_admin/navigation"
     .container-fluid
       .row
-        .col-sm-3.col-md-2.reset-left
+        .col-sm-3.col-lg-2
           .sidebar-nav
             %ul.nav.nav-pills.nav-stacked= main_navigation
             %ul.nav.nav-pills.nav-stacked= static_navigation
-        .col-sm-9.col-sm-offset-3.col-md-10.col-md-offset-2
+        .col-sm-9.col-lg-10
           .row
             .content{:'data-pjax-container' => true}= render template: 'layouts/rails_admin/pjax'

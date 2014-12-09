@@ -26,11 +26,11 @@ body.rails_admin {
   }
 
   .sidebar-nav {
-    padding: 9px 9px 9px 9px;
-    position: fixed;
-    width: 14%;
-    height: 100%;
-    background: #eaf0f1;
+    padding: 10px;
+    margin-right: 20px;
+    background: #f8f8f8;
+    border-bottom-right-radius: 20px;
+    border-bottom-left-radius: 20px;
   }
 
   /* fat labels in forms */
