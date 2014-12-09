@@ -10,5 +10,7 @@ $ ->
     textArea = this.previousSibling.previousSibling
     if textArea.id is undefined
       textArea.id = tinyMCE.DOM.uniqueId()
-    tinymce.EditorManager.createEditor(textArea.id, options).init()
-
+    editor = tinymce.EditorManager.createEditor(textArea.id, options)
+    editor.init()
+    editor.on 'change', ->
+      editor.save()
