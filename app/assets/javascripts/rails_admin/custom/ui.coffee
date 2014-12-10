@@ -1,16 +1,27 @@
 #= override this file in your application to add custom behaviour
 
+class TinyMCEActivator
+
+  constructor: (triggerNode) ->
+    @textArea = triggerNode.previousSibling.previousSibling
+
+  enableTinyMCE: ->
+    @_ensureSelectorClass()
+    tinyMCE.init
+      selector: @_getSelector(),
+      plugins: "image link table media print charmap preview code"
+      convert_urls: false
+
+  _ensureSelectorClass: ->
+    if @textArea.getAttribute('tiny-id') is null
+      tinyId = tinyMCE.DOM.uniqueId()
+      @textArea.setAttribute('tiny-id', tinyId)
+      $(@textArea).addClass(tinyId)
+
+  _getSelector: ->
+    tinyId = @textArea.getAttribute('tiny-id')
+    ".#{tinyId}"
+
 $ ->
-
-  options =
-    plugins: "image link table media print charmap preview code"
-    convert_urls: false
-
   $('body').on 'click', '.tinymce-trigger', ->
-    textArea = this.previousSibling.previousSibling
-    if textArea.id is undefined
-      textArea.id = tinyMCE.DOM.uniqueId()
-    editor = tinymce.EditorManager.createEditor(textArea.id, options)
-    editor.init()
-    editor.on 'change', ->
-      editor.save()
+    new TinyMCEActivator(this).enableTinyMCE()
