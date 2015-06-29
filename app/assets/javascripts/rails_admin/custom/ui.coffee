@@ -11,6 +11,7 @@ class TinyMCEActivator
       selector: @_getSelector(),
       plugins: "image link table media print charmap preview code"
       convert_urls: false
+      verify_html: false
 
   _ensureSelectorClass: ->
     if @textArea.getAttribute('tiny-id') is null
