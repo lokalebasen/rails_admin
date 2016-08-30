@@ -1,3 +1,6 @@
+# Warning
+This fork of `rails_admin` gem was created to add support of TinyMCE. Currently this gem is still used in [simple_cms](https://github.com/lokalebasen/simple_cms) but, however, is no longer maintaned or supported by Lokalebasen/Matchoffice.
+
 # RailsAdmin
 
 [![Gem Version](https://img.shields.io/gem/v/rails_admin.svg)][gem]
