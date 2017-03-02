@@ -1,8 +1,8 @@
-require 'rails_admin/i18n_support'
+require 'rails_admin/support/i18n'
 
 module RailsAdmin
   module ApplicationHelper
-    include RailsAdmin::I18nSupport
+    include RailsAdmin::Support::I18n
 
     def capitalize_first_letter(wording)
       return nil unless wording.present? && wording.is_a?(String)
@@ -12,9 +12,9 @@ module RailsAdmin
       wording
     end
 
-    def authorized?(action, abstract_model = nil, object = nil)
+    def authorized?(action_name, abstract_model = nil, object = nil)
       object = nil if object.try :new_record?
-      @authorization_adapter.nil? || @authorization_adapter.authorized?(action, abstract_model, object)
+      action(action_name, abstract_model, object).try(:authorized?)
     end
 
     def current_action?(action, abstract_model = @abstract_model, object = @object)
@@ -32,23 +32,28 @@ module RailsAdmin
     end
 
     def edit_user_link
-      return nil unless authorized?(:edit, _current_user.class, _current_user) && _current_user.respond_to?(:email)
+      return nil unless _current_user.respond_to?(:email)
       return nil unless abstract_model = RailsAdmin.config(_current_user.class).abstract_model
-      return nil unless edit_action = RailsAdmin::Config::Actions.find(:edit, controller: controller, abstract_model: abstract_model, object: _current_user)
-      link_to _current_user.email, url_for(action: edit_action.action_name, model_name: abstract_model.to_param, id: _current_user.id, controller: 'rails_admin/main')
+      return nil unless (edit_action = RailsAdmin::Config::Actions.find(:edit, controller: controller, abstract_model: abstract_model, object: _current_user)).try(:authorized?)
+      link_to rails_admin.url_for(action: edit_action.action_name, model_name: abstract_model.to_param, id: _current_user.id, controller: 'rails_admin/main') do
+        html = []
+        html << image_tag("#{(request.ssl? ? 'https://secure' : 'http://www')}.gravatar.com/avatar/#{Digest::MD5.hexdigest _current_user.email}?s=30", alt: '') if RailsAdmin::Config.show_gravatar && _current_user.email.present?
+        html << content_tag(:span, _current_user.email)
+        html.join.html_safe
+      end
     end
 
     def logout_path
       if defined?(Devise)
         scope = Devise::Mapping.find_scope!(_current_user)
         main_app.send("destroy_#{scope}_session_path") rescue false
-      else
-        main_app.logout_path if main_app.respond_to?(:logout_path)
+      elsif main_app.respond_to?(:logout_path)
+        main_app.logout_path
       end
     end
 
     def logout_method
-      return Devise.sign_out_via if defined?(Devise)
+      return [Devise.sign_out_via].flatten.first if defined?(Devise)
       :delete
     end
 
@@ -86,17 +91,17 @@ module RailsAdmin
       end.join
 
       label = RailsAdmin::Config.navigation_static_label || t('admin.misc.navigation_static_label')
-      li_stack = %(<li class='nav-header'>#{label}</li>#{li_stack}).html_safe if li_stack.present?
+      li_stack = %(<li class='dropdown-header'>#{label}</li>#{li_stack}).html_safe if li_stack.present?
       li_stack
     end
 
     def navigation(nodes_stack, nodes, level = 0)
       nodes.collect do |node|
         model_param = node.abstract_model.to_param
-        url         = url_for(action: :index, controller: 'rails_admin/main', model_name: model_param)
+        url         = rails_admin.url_for(action: :index, controller: 'rails_admin/main', model_name: model_param)
         level_class = " nav-level-#{level}" if level > 0
         nav_icon = node.navigation_icon ? %(<i class="#{node.navigation_icon}"></i>).html_safe : ''
-        li = content_tag :li, 'data-model' => model_param do
+        li = content_tag :li, data: {model: model_param} do
           link_to nav_icon + capitalize_first_letter(node.label_plural), url, class: "pjax#{level_class}"
         end
         li + navigation(nodes_stack, nodes_stack.select { |n| n.parent.to_s == node.abstract_model.model_name }, level + 1)
@@ -116,7 +121,7 @@ module RailsAdmin
             crumb = begin
               if !current_action?(a, am, o)
                 if a.http_methods.include?(:get)
-                  link_to url_for(action: a.action_name, controller: 'rails_admin/main', model_name: am.try(:to_param), id: (o.try(:persisted?) && o.try(:id) || nil)), class: 'pjax' do
+                  link_to rails_admin.url_for(action: a.action_name, controller: 'rails_admin/main', model_name: am.try(:to_param), id: (o.try(:persisted?) && o.try(:id) || nil)), class: 'pjax' do
                     wording_for(:breadcrumb, a, am, o)
                   end
                 else
@@ -139,7 +144,7 @@ module RailsAdmin
         wording = wording_for(:menu, action)
         %(
           <li title="#{wording if only_icon}" rel="#{'tooltip' if only_icon}" class="icon #{action.key}_#{parent}_link #{'active' if current_action?(action)}">
-            <a href="#{url_for(action: action.action_name, controller: 'rails_admin/main', model_name: abstract_model.try(:to_param), id: (object.try(:persisted?) && object.try(:id) || nil))}">
+            <a class="#{action.pjax? ? 'pjax' : ''}" href="#{rails_admin.url_for(action: action.action_name, controller: 'rails_admin/main', model_name: abstract_model.try(:to_param), id: (object.try(:persisted?) && object.try(:id) || nil))}">
               <i class="#{action.link_icon}"></i>
               <span#{only_icon ? " style='display:none'" : ''}>#{wording}</span>
             </a>
@@ -152,7 +157,7 @@ module RailsAdmin
       actions = actions(:bulkable, abstract_model)
       return '' if actions.empty?
       content_tag :li, class: 'dropdown', style: 'float:right' do
-        content_tag(:a, class: 'dropdown-toggle', :'data-toggle' => 'dropdown', href: '#') { t('admin.misc.bulk_menu_title').html_safe + '<b class="caret"></b>'.html_safe } +
+        content_tag(:a, class: 'dropdown-toggle', data: {toggle: 'dropdown'}, href: '#') { t('admin.misc.bulk_menu_title').html_safe + ' ' + '<b class="caret"></b>'.html_safe } +
           content_tag(:ul, class: 'dropdown-menu', style: 'left:auto; right:0;') do
             actions.collect do |action|
               content_tag :li do
@@ -161,6 +166,15 @@ module RailsAdmin
             end.join.html_safe
           end
       end.html_safe
+    end
+
+    def flash_alert_class(flash_key)
+      case flash_key.to_s
+      when 'error'  then 'alert-danger'
+      when 'alert'  then 'alert-warning'
+      when 'notice' then 'alert-info'
+      else "alert-#{flash_key}"
+      end
     end
   end
 end
